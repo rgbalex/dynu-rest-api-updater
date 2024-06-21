@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import requests
 import threading
 import customtkinter as ctk
@@ -9,12 +10,13 @@ from .countdownthread import CountdownThread
 
 class DynuAPIUpdater:
     def __init__(self):
-        self.client_id = None
         self.api_key = None
+        self.dns_list = None
+        self.client_id = None
+        self.access_token = None
         self.timer_thread = None
         self.url = "https://api.dynu.com/v2/oauth2/token"
         self.secret_path = os.path.join(os.environ["USERPROFILE"], "dynu_secret.json")
-        self.access_token = None
 
         if not os.path.exists(self.secret_path):
             with open(self.secret_path, "w") as f:
@@ -108,6 +110,8 @@ class DynuAPIUpdater:
         self.request_dns_button.grid(row=0, column=0, padx=10, pady=5)
 
         self.dns_listbox = ctk.CTkComboBox(self.APIActionFrame)
+        self.dns_listbox.configure(values=[])
+        self.dns_listbox.set("Request DNS Records")
         self.dns_listbox.grid(row=1, column=0, padx=10, pady=5)
 
         self.request_update_ip_button = ctk.CTkButton(
@@ -153,7 +157,51 @@ class DynuAPIUpdater:
         exit(0)
 
     def request_dns_records(self):
-        pass
+        if self.access_token is None:
+            messagebox.showerror("Error", "Please request OAuth session first")
+            return
+
+        headers = {
+            "Authorization": f"Bearer {self.access_token}",
+            "Content-Type": "application/json",
+        }
+        retries = 0
+        while retries < 3:
+            response = requests.get("https://api.dynu.com/v2/dns", headers=headers)
+            response_json = response.json()
+            match response.status_code:
+                case 401:
+                    self.output_text.configure(state="normal")
+                    self.output_text.insert(ctk.END, str(response_json) + "\n")
+                    self.output_text.see(ctk.END)
+                    self.output_text.configure(state="disabled")
+                case 200:
+                    self.dns_list = response_json["domains"]
+                    domains = [record["name"] for record in self.dns_list]
+
+                    if len(domains) == 0:
+                        messagebox.showinfo("Info", "No domains found")
+                    else:
+                        self.dns_listbox.set("Select Domain")
+
+                    self.dns_listbox.configure(values=domains)
+                    self.output_text.configure(state="normal")
+                    self.output_text.insert(ctk.END, str(response_json) + "\n")
+                    self.output_text.see(ctk.END)
+                    self.output_text.configure(state="disabled")
+                    return
+                case _:
+                    print(f"Uncaught response status code {response.status_code}")
+                    raise Exception(
+                        f"Uncaught response status code {response.status_code}"
+                    )
+            time.sleep(1)
+            retries += 1
+
+        if response.status_code == 401:
+            messagebox.showerror(
+                "Error", "Your session has expired. Please re-authenticate."
+            )
 
     def request_update_ip(self):
         pass
@@ -199,7 +247,9 @@ class DynuAPIUpdater:
                     self.timer_thread.start()
 
                     self.output_text.configure(state="normal")
-                    self.output_text.insert(ctk.END, str(response_json) + "\n")
+                    self.output_text.insert(
+                        ctk.END, "=== Authorization Successful ===\n"
+                    )
                     self.output_text.see(ctk.END)
                     self.output_text.configure(state="disabled")
                 case _:

@@ -35,10 +35,13 @@ class CountdownThread(threading.Thread):
                 return
 
         print("Your session will expire in 60 seconds.")
-        if self.refresh_oauth_session_checkbox.get() == 1:
-            print("Refreshing OAuth Session...")
-            self.countdown(0)
-            self.refresh_oauth_session_command()
+
+        while self.seconds > 0:
+            if self.refresh_oauth_session_checkbox.get() == 1:
+                print("Refreshing OAuth Session...")
+                self.countdown(0)
+                self.refresh_oauth_session_command()
+                return
 
     def kill(self):
         self._kill.set()
