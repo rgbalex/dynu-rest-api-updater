@@ -171,10 +171,10 @@ class DynuAPIUpdater:
         self.window.destroy()
         exit(0)
 
-    def print(self, string: str):
+    def print(self, string: str, severity: str = "INFO"):
         # get timestamp
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-        self.logfile.write(f"{timestamp} | {string.strip()}\n")
+        self.logfile.write(f"[{severity}] {timestamp} | {string.strip()}\n")
         self.output_text.configure(state="normal")
         self.output_text.insert(ctk.END, string)
         self.output_text.see(ctk.END)
