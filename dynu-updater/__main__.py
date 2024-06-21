@@ -86,11 +86,11 @@ class DynuAPIUpdater:
         self.TimerFrame.configure(border_width=2)
         self.TimerFrame.grid(row=0, column=1, rowspan=3, padx=10, pady=10)
 
-        self.timer_label = ctk.CTkLabel(self.TimerFrame, text="Timer (seconds):")
+        self.timer_label = ctk.CTkLabel(self.TimerFrame, text="Timer (hh:mm:ss):")
         self.timer_label.grid(row=1, column=1, padx=10, pady=0)
 
         self.timer_time_label = ctk.CTkLabel(
-            self.TimerFrame, text="0", font=("Arial", 16)
+            self.TimerFrame, text="00:00:00", font=("Arial", 16)
         )
         self.timer_time_label.grid(row=2, column=1, padx=10, pady=0)
 
@@ -100,7 +100,7 @@ class DynuAPIUpdater:
         self.refresh_oauth_session_checkbox.grid(row=3, column=1, padx=10, pady=(0, 0))
         # endregion
 
-        # region APIActionFrame
+        # region API Frame
         self.APIActionFrame = ctk.CTkFrame(self.window)
         self.APIActionFrame.grid(row=0, column=1, padx=10, pady=10)
 
@@ -109,7 +109,8 @@ class DynuAPIUpdater:
             text="Request DNS Records",
             command=self.request_dns_records,
         )
-        self.request_dns_button.grid(row=0, column=0, padx=10, pady=5)
+        # TODO: Move this to the title bar as this is automatic now
+        # self.request_dns_button.grid(row=0, column=0, padx=10, pady=5)
 
         self.dns_listbox = ctk.CTkComboBox(self.APIActionFrame)
         self.dns_listbox.configure(values=[])
@@ -129,20 +130,21 @@ class DynuAPIUpdater:
         self.request_update_ip_button.grid(row=3, column=0, padx=10, pady=5)
 
         self.update_ip_interval_label = ctk.CTkLabel(
-            self.APIActionFrame, text="Update IP Interval (minutes):"
+            self.APIActionFrame, text="Update IP Interval (seconds):"
         )
         self.update_ip_interval_label.grid(row=4, column=0, padx=10, pady=5)
 
         self.update_ip_interval_entry = ctk.CTkEntry(self.APIActionFrame)
+        self.update_ip_interval_entry.insert(ctk.END, "30")
         self.update_ip_interval_entry.grid(row=5, column=0, padx=10, pady=5)
         # endregion
 
-        self.request_button = ctk.CTkButton(
+        self.logon_oauth_button = ctk.CTkButton(
             self.OAuthFrame,
-            text="Make Request",
+            text="Logon to Dynu API",
             command=self.authenticate_oauth_session,
         )
-        self.request_button.grid(columnspan=2, row=6, column=0, padx=10, pady=5)
+        self.logon_oauth_button.grid(columnspan=2, row=6, column=0, padx=10, pady=5)
 
         self.output_text = ctk.CTkTextbox(self.window)
         self.output_text.configure(state="disabled")
@@ -152,6 +154,7 @@ class DynuAPIUpdater:
 
         self.window.mainloop()
 
+    #region Helpers
     def on_window_close(self):
         if self.timer_thread is not None:
             self.timer_thread.kill()
@@ -165,6 +168,17 @@ class DynuAPIUpdater:
         self.output_text.insert(ctk.END, string)
         self.output_text.see(ctk.END)
         self.output_text.configure(state="disabled")
+
+    def reset_oauth_token(self):
+        if self.timer_thread is not None:
+            self.timer_thread.kill()
+        # if self.auto_update_ip_thread is not None:
+            # self.auto_update_ip_thread.kill()
+        self.access_token = None
+
+    def get_oauth_session(self):
+        return self.access_token
+    #endregion
 
     def request_dns_records(self):
         if self.access_token is None:
@@ -213,11 +227,14 @@ class DynuAPIUpdater:
 
     def request_update_ip_backend(self, ip_addr: str):
         if self.access_token is None:
-            raise Exception("Please request OAuth session first")
+            messagebox.showerror("Error", "Please request OAuth session first")
+            raise requests.RequestException("Please request OAuth session first")
         if (self.dns_listbox.get() == "Select Domain") | (self.dns_listbox.get() == ""):
-            raise Exception("Please select a valid domain")
+            messagebox.showerror("Error", "Please select a valid domain")
+            raise requests.RequestException("Please select a valid domain")
         if ip_addr == "":
-            raise Exception("IP Address was not set.")
+            messagebox.showerror("Error", "IP Address was not set.")
+            raise requests.RequestException("IP Address was not set.")
 
         domain = self.dns_list[self.dns_listbox.get()]
         headers = {
@@ -271,34 +288,28 @@ class DynuAPIUpdater:
                 return
 
             domain = self.dns_list[self.dns_listbox.get()]
-            headers = {
-                "Authorization": f"Bearer {self.access_token}",
-                "Content-Type": "application/json",
-            }
+            domain["ipv4Address"] = ip_addr
+            
+            self.print(f"Updating IP address to {ip_addr}...\n")
+            self.request_update_ip_backend(ip_addr)
 
-            print(f"IP Address: {ip_addr}\n")
-
-            # TODO: Refresh this on button press to ensure up to date information
-            if ip_addr == domain["ipv4Address"]:
-                self.print("IP address is already up-to-date.\n")
-                return
-            else:
-                domain["ipv4Address"] = ip_addr
-                self.print(f"Updating IP address to {ip_addr}...\n")
-                self.request_update_ip_backend(ip_addr)
         else:  # Auto update IP
             self.print("Auto update IP address is enabled.\n")
             if self.auto_update_ip_thread is not None:
                 self.auto_update_ip_thread.kill()
-
+            #region IP Thread
             self.auto_update_ip_thread = AutoUpdateIPThread(
                 self.print,
                 self.update_ip_interval_entry.get(),
                 self.enable_auto_update_ip_checkbox,
                 self.request_update_ip_backend,
+                self.request_update_ip_button,
+                self.request_update_ip, 
+                self.update_ip_interval_entry
             )
             self.auto_update_ip_thread.start()
             self.print("Auto update IP address thread started.\n")
+            #endregion
 
     def update_oauth_session_refresh_preference(self):
         with open(self.secret_path, "r") as f:
@@ -339,17 +350,22 @@ class DynuAPIUpdater:
                 case 200:
                     if self.timer_thread is not None:
                         self.timer_thread.kill()
-
                     self.access_token = response_json["access_token"]
+
+                    #region Countdown Thread
                     self.timer_thread = CountdownThread(
+                        self.print,
                         response_json["expires_in"],
                         self.timer_time_label,
                         self.refresh_oauth_session_checkbox,
                         self.authenticate_oauth_session,
+                        self.logon_oauth_button,
+                        self.reset_oauth_token
                     )
                     self.timer_thread.start()
-
                     self.print("OAuth Key Requested Successfully.\n")
+                    #endregion
+                    self.request_dns_records()
                 case 401:
                     messagebox.showerror("Error", "Invalid client_id or api_key")
                 case _:
@@ -357,7 +373,7 @@ class DynuAPIUpdater:
                         "Uncaught response status code {}".format(response.status_code)
                     )
 
-            self.request_button.configure(state="normal")
+            self.logon_oauth_button.configure(state="normal")
 
         client_id = self.client_id_entry.get()
         api_key = self.api_key_entry.get()
@@ -371,7 +387,7 @@ class DynuAPIUpdater:
                 {"client_id": client_id.strip(), "client_secret": api_key.strip()}, f
             )
 
-        self.request_button.configure(state="disabled")
+        self.logon_oauth_button.configure(state="disabled")
         thread = threading.Thread(target=fetch_data, args=(self, client_id, api_key))
         thread.start()
 
