@@ -6,6 +6,7 @@ import threading
 import customtkinter as ctk
 from tkinter import messagebox
 from .countdownthread import CountdownThread
+from .autoupdateipthread import AutoUpdateIPThread
 
 
 class DynuAPIUpdater:
@@ -15,6 +16,7 @@ class DynuAPIUpdater:
         self.client_id = None
         self.access_token = None
         self.timer_thread = None
+        self.auto_update_ip_thread = None
         self.url = "https://api.dynu.com/v2/oauth2/token"
         self.secret_path = os.path.join(os.environ["USERPROFILE"], "dynu_secret.json")
 
@@ -153,6 +155,8 @@ class DynuAPIUpdater:
     def on_window_close(self):
         if self.timer_thread is not None:
             self.timer_thread.kill()
+        if self.auto_update_ip_thread is not None:
+            self.auto_update_ip_thread.kill()
         self.window.destroy()
         exit(0)
 
@@ -207,65 +211,6 @@ class DynuAPIUpdater:
                 "Error", "Your session has expired. Please re-authenticate."
             )
 
-    def request_update_ip(self):
-        if self.access_token is None:
-            messagebox.showerror("Error", "Please request OAuth session first")
-            return
-        if (self.dns_listbox.get() == "Select Domain") | (self.dns_listbox.get() == ""):
-            messagebox.showerror("Error", "Please select a valid domain")
-            return
-        ip_addr = requests.get("https://api.ipify.org").text
-        if ip_addr == "":
-            messagebox.showerror("Error", "Could not obtain IP address")
-            return
-
-        headers = {
-            "Authorization": f"Bearer {self.access_token}",
-            "Content-Type": "application/json",
-        }
-
-        domain = self.dns_list[self.dns_listbox.get()]
-
-        print(f"IP Address: {ip_addr}\n")
-
-        if ip_addr == domain["ipv4Address"]:
-            self.print("IP address is already up-to-date.\n")
-            return
-        else:
-            domain["ipv4Address"] = ip_addr
-            self.print(f"Updating IP address to {ip_addr}...\n")
-
-        response = requests.post(
-            f"https://api.dynu.com/v2/dns/{domain['id']}", headers=headers, json=domain
-        )
-        response_json = response.json()
-        try:
-            match response.status_code:
-                case 200:
-                    self.print(f"IP address updated to {ip_addr} successfully.\n")
-        except KeyError as e:
-            match response_json["exception"]["statusCode"]:
-                case 500:
-                    self.print(
-                        "The operation failed on the server due to an unexpected error.\n"
-                    )
-                    self.print(f"Error: {response_json['exception']['message']}\n")
-                case 501:
-                    self.print("Arguments are missing or invalid.\n")
-                    self.print(f"Error: {response_json['exception']['message']}\n")
-                case 502:
-                    self.print(
-                        "There was an error when parsing the request and its parameters.\n"
-                    )
-                    self.print(f"Error: {response_json['exception']['message']}\n")
-                case _:
-                    self.print(
-                        f"Uncaught response status code {response.status_code}\n"
-                    )
-        except Exception as e:
-            self.print(f"Uncaught exception: {e}\n")
-            raise Exception(f"Uncaught exception: {e}")
-
     def request_update_ip_backend(self, ip_addr: str):
         if self.access_token is None:
             raise Exception("Please request OAuth session first")
@@ -273,7 +218,7 @@ class DynuAPIUpdater:
             raise Exception("Please select a valid domain")
         if ip_addr == "":
             raise Exception("IP Address was not set.")
-        
+
         domain = self.dns_list[self.dns_listbox.get()]
         headers = {
             "Authorization": f"Bearer {self.access_token}",
@@ -311,7 +256,49 @@ class DynuAPIUpdater:
             self.print(f"Uncaught exception: {e}\n")
             raise Exception(f"Uncaught exception: {e}")
 
-        
+    def request_update_ip(self):
+        if self.access_token is None:
+            messagebox.showerror("Error", "Please request OAuth session first")
+            return
+        if (self.dns_listbox.get() == "Select Domain") | (self.dns_listbox.get() == ""):
+            messagebox.showerror("Error", "Please select a valid domain")
+            return
+
+        if self.enable_auto_update_ip_checkbox.get() == 0:
+            ip_addr = requests.get("https://api.ipify.org").text
+            if ip_addr == "":
+                messagebox.showerror("Error", "Could not obtain IP address")
+                return
+
+            domain = self.dns_list[self.dns_listbox.get()]
+            headers = {
+                "Authorization": f"Bearer {self.access_token}",
+                "Content-Type": "application/json",
+            }
+
+            print(f"IP Address: {ip_addr}\n")
+
+            # TODO: Refresh this on button press to ensure up to date information
+            if ip_addr == domain["ipv4Address"]:
+                self.print("IP address is already up-to-date.\n")
+                return
+            else:
+                domain["ipv4Address"] = ip_addr
+                self.print(f"Updating IP address to {ip_addr}...\n")
+                self.request_update_ip_backend(ip_addr)
+        else:  # Auto update IP
+            self.print("Auto update IP address is enabled.\n")
+            if self.auto_update_ip_thread is not None:
+                self.auto_update_ip_thread.kill()
+
+            self.auto_update_ip_thread = AutoUpdateIPThread(
+                self.print,
+                self.update_ip_interval_entry.get(),
+                self.enable_auto_update_ip_checkbox,
+                self.request_update_ip_backend,
+            )
+            self.auto_update_ip_thread.start()
+            self.print("Auto update IP address thread started.\n")
 
     def update_oauth_session_refresh_preference(self):
         with open(self.secret_path, "r") as f:
