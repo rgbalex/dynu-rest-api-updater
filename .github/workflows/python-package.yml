@@ -38,7 +38,7 @@ jobs:
         python -m pip install -r requirements.txt
     - name: Build exe for distribution
       run: |
-        pyinstaller --noconfirm --onedir --windowed --icon "./_internal/favicon.ico" --name "dynu_updater" --clean --add-data "./dynu_updater/__init__.py;." --add-data "./dynu_updater/autoupdateipthread.py;." --add-data "./dynu_updater/countdownthread.py;." --add-data "./dynu_updater/gui.py;." --add-data "./_internal/favicon.ico;."  "./main.py"
+        pyinstaller --noconfirm --onedir --windowed --icon "./_internal/favicon.ico" --name "dynu_updater" --clean --add-data "./dynu_updater/__init__.py:." --add-data "./dynu_updater/autoupdateipthread.py:." --add-data "./dynu_updater/countdownthread.py:." --add-data "./dynu_updater/gui.py:." --add-data "./_internal/favicon.ico:."  "./main.py"
     - name: Zip Folder
       run: |
         cd ./dist/dynu_updater
