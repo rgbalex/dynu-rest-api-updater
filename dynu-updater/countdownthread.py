@@ -2,7 +2,13 @@ import threading, time
 
 
 class CountdownThread(threading.Thread):
-    def __init__(self, seconds, label, refresh_oauth_session_checkbox, refresh_oauth_session_command):
+    def __init__(
+        self,
+        seconds,
+        label,
+        refresh_oauth_session_checkbox,
+        refresh_oauth_session_command,
+    ):
         super().__init__()
         self.seconds = seconds
         self._kill = threading.Event()
@@ -16,7 +22,7 @@ class CountdownThread(threading.Thread):
         self.label.configure(text=formatted_time)
 
     def run(self):
-        while self.seconds > 28795:
+        while self.seconds > 60:
             self.countdown(self.seconds)
 
             # If no kill signal is set, sleep for the interval,
@@ -27,7 +33,7 @@ class CountdownThread(threading.Thread):
 
             if is_killed:
                 return
-        
+
         print("Your session will expire in 60 seconds.")
         if self.refresh_oauth_session_checkbox.get() == 1:
             print("Refreshing OAuth Session...")

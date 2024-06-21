@@ -14,20 +14,30 @@ class DynuAPIUpdater:
         self.timer_thread = None
         self.url = "https://api.dynu.com/v2/oauth2/token"
         self.secret_path = os.path.join(os.environ["USERPROFILE"], "dynu_secret.json")
+        self.access_token = None
 
         if not os.path.exists(self.secret_path):
             with open(self.secret_path, "w") as f:
-                json.dump({"client_id": "", "client_secret": "", "auto_update_oauth_session": True}, f)
+                json.dump(
+                    {
+                        "client_id": "",
+                        "client_secret": "",
+                        "auto_update_oauth_session": True,
+                    },
+                    f,
+                )
 
         try:
             with open(self.secret_path) as f:
                 secret_data = json.load(f)
                 self.client_id = secret_data["client_id"]
                 self.api_key = secret_data["client_secret"]
-                self.auto_update_oauth_session = secret_data["auto_update_oauth_session"]
+                self.auto_update_oauth_session = secret_data[
+                    "auto_update_oauth_session"
+                ]
         except KeyError as e:
             print(f"Error: {e}")
-            
+
         self.create_gui()
 
     def create_gui(self):
@@ -88,8 +98,37 @@ class DynuAPIUpdater:
 
         # region APIActionFrame
         self.APIActionFrame = ctk.CTkFrame(self.window)
-        self.APIActionFrame.grid(row=1, column=0, padx=10, pady=0)
+        self.APIActionFrame.grid(row=0, column=1, padx=10, pady=10)
 
+        self.request_dns_button = ctk.CTkButton(
+            self.APIActionFrame,
+            text="Request DNS Records",
+            command=self.request_dns_records,
+        )
+        self.request_dns_button.grid(row=0, column=0, padx=10, pady=5)
+
+        self.dns_listbox = ctk.CTkComboBox(self.APIActionFrame)
+        self.dns_listbox.grid(row=1, column=0, padx=10, pady=5)
+
+        self.request_update_ip_button = ctk.CTkButton(
+            self.APIActionFrame,
+            text="Request Update IP",
+            command=self.request_update_ip,
+        )
+        self.request_update_ip_button.grid(row=2, column=0, padx=10, pady=5)
+
+        self.enable_auto_update_ip_checkbox = ctk.CTkCheckBox(
+            self.APIActionFrame, text="Enable Auto Update IP"
+        )
+        self.enable_auto_update_ip_checkbox.grid(row=3, column=0, padx=10, pady=5)
+
+        self.update_ip_interval_label = ctk.CTkLabel(
+            self.APIActionFrame, text="Update IP Interval (minutes):"
+        )
+        self.update_ip_interval_label.grid(row=4, column=0, padx=10, pady=5)
+
+        self.update_ip_interval_entry = ctk.CTkEntry(self.APIActionFrame)
+        self.update_ip_interval_entry.grid(row=5, column=0, padx=10, pady=5)
         # endregion
 
         self.request_button = ctk.CTkButton(
@@ -100,6 +139,7 @@ class DynuAPIUpdater:
         self.request_button.grid(columnspan=2, row=6, column=0, padx=10, pady=5)
 
         self.output_text = ctk.CTkTextbox(self.window)
+        self.output_text.configure(state="disabled")
         self.output_text.grid(
             columnspan=2, row=1, column=0, padx=10, pady=(0, 10), sticky="news"
         )
@@ -112,43 +152,60 @@ class DynuAPIUpdater:
         self.window.destroy()
         exit(0)
 
+    def request_dns_records(self):
+        pass
+
+    def request_update_ip(self):
+        pass
+
     def update_oauth_session_refresh_preference(self):
         with open(self.secret_path, "r") as f:
             secret_data = json.load(f)
-            secret_data["auto_update_oauth_session"] = self.refresh_oauth_session_checkbox.get()
+            secret_data["auto_update_oauth_session"] = (
+                self.refresh_oauth_session_checkbox.get()
+            )
 
         with open(self.secret_path, "w") as f:
             json.dump(secret_data, f)
 
-        print(f"Updated auto update OAuth session preference to {self.refresh_oauth_session_checkbox.get()}")
+        print(
+            f"Updated auto update OAuth session preference to {self.refresh_oauth_session_checkbox.get()}"
+        )
 
     def authenticate_oauth_session(self):
         if self.timer_thread is not None:
             self.timer_thread.kill()
-            
+
         def fetch_data(self):
             response = requests.get(self.url, auth=(self.client_id, self.api_key))
             response_json = response.json()
 
             # Check authentication
-            if response.status_code == 401:
-                messagebox.showerror("Error", "Invalid client_id or api_key")
-                return
-            elif response.status_code == 200:
-                if self.timer_thread is not None:
-                    self.timer_thread.kill()
+            match response.status_code:
+                case 401:
+                    messagebox.showerror("Error", "Invalid client_id or api_key")
+                    return
+                case 200:
+                    if self.timer_thread is not None:
+                        self.timer_thread.kill()
 
-                self.timer_thread = CountdownThread(
-                    response_json["expires_in"], self.timer_time_label, 
-                    self.refresh_oauth_session_checkbox,
-                    self.authenticate_oauth_session
-                )
-                self.timer_thread.start()
+                    self.access_token = response_json["access_token"]
+                    self.timer_thread = CountdownThread(
+                        response_json["expires_in"],
+                        self.timer_time_label,
+                        self.refresh_oauth_session_checkbox,
+                        self.authenticate_oauth_session,
+                    )
+                    self.timer_thread.start()
 
-                self.output_text.insert(ctk.END, str(response_json) + "\n")
-                self.output_text.see(ctk.END)
-            else:
-                raise Exception("Uncaught response status code {}".format(response.status_code))
+                    self.output_text.configure(state="normal")
+                    self.output_text.insert(ctk.END, str(response_json) + "\n")
+                    self.output_text.see(ctk.END)
+                    self.output_text.configure(state="disabled")
+                case _:
+                    raise Exception(
+                        "Uncaught response status code {}".format(response.status_code)
+                    )
 
             self.request_button.configure(state="normal")
 
@@ -160,7 +217,9 @@ class DynuAPIUpdater:
             return
 
         with open(self.secret_path, "w") as f:
-            json.dump({"client_id": client_id.strip(), "client_secret": api_key.strip()}, f)
+            json.dump(
+                {"client_id": client_id.strip(), "client_secret": api_key.strip()}, f
+            )
 
         self.request_button.configure(state="disabled")
         thread = threading.Thread(target=fetch_data, args=(self,))
