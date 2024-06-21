@@ -171,10 +171,13 @@ class DynuAPIUpdater:
         self.window.destroy()
         exit(0)
 
-    def print(self, string: str, severity: str = "INFO"):
-        # get timestamp
+    def log(self, string: str, severity: str = "INFO"):
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
         self.logfile.write(f"[{severity}] {timestamp} | {string.strip()}\n")
+        self.logfile.flush()
+
+    def print(self, string: str, severity: str = "INFO"):
+        self.log(string, severity)
         self.output_text.configure(state="normal")
         self.output_text.insert(ctk.END, string)
         self.output_text.see(ctk.END)
@@ -183,8 +186,6 @@ class DynuAPIUpdater:
     def reset_oauth_token(self):
         if self.timer_thread is not None:
             self.timer_thread.kill()
-        # if self.auto_update_ip_thread is not None:
-        # self.auto_update_ip_thread.kill()
         self.access_token = None
 
     def get_oauth_session(self):
