@@ -45,6 +45,7 @@ jobs:
         cd ./dist/dynu_updater
         rm -rf dynu_updater.zip
         zip -r dynu_updater.zip ./* -x ".git/*" ".github/*"
+        echo "List of files below:"
         ls
     - name: Create release
       id: create_release
@@ -64,7 +65,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-        asset_path: ./dynu_updater.zip
+        asset_path: dynu_updater.zip
         asset_name: dynu_updater_portable.zip
-        asset_content_type: application/octet-stream
+        asset_content_type: application/zip
         
