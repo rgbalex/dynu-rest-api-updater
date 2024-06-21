@@ -36,7 +36,7 @@ class DynuAPIUpdater:
         if not os.path.exists(self.logfile_path):
             with open("dynu_updater.log", "w") as f:
                 f.write("")
-        
+
         self.logfile = open(self.logfile_path, "a")
 
         try:
@@ -162,7 +162,7 @@ class DynuAPIUpdater:
 
         self.window.mainloop()
 
-    #region Helpers
+    # region Helpers
     def on_window_close(self):
         if self.timer_thread is not None:
             self.timer_thread.kill()
@@ -184,12 +184,13 @@ class DynuAPIUpdater:
         if self.timer_thread is not None:
             self.timer_thread.kill()
         # if self.auto_update_ip_thread is not None:
-            # self.auto_update_ip_thread.kill()
+        # self.auto_update_ip_thread.kill()
         self.access_token = None
 
     def get_oauth_session(self):
         return self.access_token
-    #endregion
+
+    # endregion
 
     def request_dns_records(self):
         if self.access_token is None:
@@ -265,24 +266,33 @@ class DynuAPIUpdater:
             match response_json["exception"]["statusCode"]:
                 case 500:
                     self.print(
-                        "The operation failed on the server due to an unexpected error.\n"
+                        "The operation failed on the server due to an unexpected error.\n",
+                        "WARN",
                     )
-                    self.print(f"Error: {response_json['exception']['message']}\n")
+                    self.print(
+                        f"Error: {response_json['exception']['message']}\n", "WARN"
+                    )
                 case 501:
-                    self.print("Arguments are missing or invalid.\n")
-                    self.print(f"Error: {response_json['exception']['message']}\n")
+                    self.print("Arguments are missing or invalid.\n", "WARN")
+                    self.print(
+                        f"Error: {response_json['exception']['message']}\n", "WARN"
+                    )
                 case 502:
                     self.print(
-                        "There was an error when parsing the request and its parameters.\n"
+                        "There was an error when parsing the request and its parameters.\n",
+                        "WARN",
                     )
-                    self.print(f"Error: {response_json['exception']['message']}\n")
+                    self.print(
+                        f"Error: {response_json['exception']['message']}\n", "WARN"
+                    )
                 case _:
                     self.print(
-                        f"Uncaught response status code {response.status_code}\n"
+                        f"Uncaught response status code {response.status_code}\n",
+                        "WARN",
                     )
         except Exception as e:
-            self.print(f"Uncaught exception: {e}\n")
-            raise Exception(f"Uncaught exception: {e}")
+            self.print(f"Uncaught exception: {e}\n", "CRIT")
+            raise Exception(f"Uncaught exception: {e}", "CRIT")
 
     def request_update_ip(self):
         if self.access_token is None:
@@ -300,7 +310,7 @@ class DynuAPIUpdater:
 
             domain = self.dns_list[self.dns_listbox.get()]
             domain["ipv4Address"] = ip_addr
-            
+
             self.print(f"Updating IP address to {ip_addr}...\n")
             self.request_update_ip_backend(ip_addr)
 
@@ -308,19 +318,19 @@ class DynuAPIUpdater:
             self.print("Auto update IP address is enabled.\n")
             if self.auto_update_ip_thread is not None:
                 self.auto_update_ip_thread.kill()
-            #region IP Thread
+            # region IP Thread
             self.auto_update_ip_thread = AutoUpdateIPThread(
                 self.print,
                 self.update_ip_interval_entry.get(),
                 self.enable_auto_update_ip_checkbox,
                 self.request_update_ip_backend,
                 self.request_update_ip_button,
-                self.request_update_ip, 
-                self.update_ip_interval_entry
+                self.request_update_ip,
+                self.update_ip_interval_entry,
             )
             self.auto_update_ip_thread.start()
             self.print("Auto update IP address thread started.\n")
-            #endregion
+            # endregion
 
     def update_oauth_session_refresh_preference(self):
         with open(self.secret_path, "r") as f:
@@ -363,7 +373,7 @@ class DynuAPIUpdater:
                         self.timer_thread.kill()
                     self.access_token = response_json["access_token"]
 
-                    #region Countdown Thread
+                    # region Countdown Thread
                     self.timer_thread = CountdownThread(
                         self.print,
                         response_json["expires_in"],
@@ -371,11 +381,11 @@ class DynuAPIUpdater:
                         self.refresh_oauth_session_checkbox,
                         self.authenticate_oauth_session,
                         self.logon_oauth_button,
-                        self.reset_oauth_token
+                        self.reset_oauth_token,
                     )
                     self.timer_thread.start()
                     self.print("OAuth Key Requested Successfully.\n")
-                    #endregion
+                    # endregion
                     self.request_dns_records()
                 case 401:
                     messagebox.showerror("Error", "Invalid client_id or api_key")

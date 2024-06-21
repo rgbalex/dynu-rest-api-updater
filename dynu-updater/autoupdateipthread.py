@@ -23,7 +23,7 @@ class AutoUpdateIPThread(threading.Thread):
                 raise ValueError
             self.print(f"Updating every {self.seconds} seconds. \n")
         except ValueError:
-            self.print("Invalid input for update frequency.\n")
+            self.print("Invalid input for update frequency.\n", "WARN")
             return
 
         self.ip_address = None
@@ -40,12 +40,17 @@ class AutoUpdateIPThread(threading.Thread):
         try:
             return requests.get("https://api.ipify.org").text
         except requests.RequestException:
-            self.print("Failed to get IP Address.\n")
+            self.print("Failed to get IP Address.\n", "CRIT")
             return "0.0.0.0"
 
     def run(self):
         current_ip_address = "0.0.0.0"
-        self.request_ip_update_button.configure(text="Stop Auto Update", fg_color=("#6f0000"), hover_color=("#530000"), command=self.kill)
+        self.request_ip_update_button.configure(
+            text="Stop Auto Update",
+            fg_color=("#6f0000"),
+            hover_color=("#530000"),
+            command=self.kill,
+        )
         self.update_interval_entry.configure(state="disabled")
         while True:
             new_ip_address = self.get_ip_address()
@@ -55,14 +60,19 @@ class AutoUpdateIPThread(threading.Thread):
                 try:
                     self.refresh_ip_address_command(current_ip_address)
                 except requests.RequestException as e:
-                    self.print(f"Failed to update IP Address. {e}\n")
+                    self.print(f"Failed to update IP Address. {e}\n", "CRIT")
                     self.kill()
             else:
                 self.print("IP Address is up to date.\n")
 
             if self.refresh_ip_addr_checkbox.get() == 0:
                 self.print("Auto IP Update Stopped.\n")
-                self.request_ip_update_button.configure(text="Request IP Update", fg_color=self.old_button_color, hover_color=self.old_button_hover_color, command=self.request_ip_update_command)
+                self.request_ip_update_button.configure(
+                    text="Request IP Update",
+                    fg_color=self.old_button_color,
+                    hover_color=self.old_button_hover_color,
+                    command=self.request_ip_update_command,
+                )
                 self.update_interval_entry.configure(state="normal")
                 return
 
@@ -73,6 +83,11 @@ class AutoUpdateIPThread(threading.Thread):
 
     def kill(self):
         self.print("Auto IP Update Stopped.\n")
-        self.request_ip_update_button.configure(text="Request IP Update", fg_color=self.old_button_color, hover_color=self.old_button_hover_color, command=self.request_ip_update_command)
+        self.request_ip_update_button.configure(
+            text="Request IP Update",
+            fg_color=self.old_button_color,
+            hover_color=self.old_button_hover_color,
+            command=self.request_ip_update_command,
+        )
         self.update_interval_entry.configure(state="normal")
         self._kill.set()

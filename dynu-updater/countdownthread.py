@@ -30,20 +30,29 @@ class CountdownThread(threading.Thread):
         self.label.configure(text=formatted_time)
 
     def refresh_oauth_session(self):
-        self.logon_oauth_button.configure(text="Refresh OAuth Token", fg_color=("#530000"), hover_color=("#005000"), command=self.refresh_oauth_session)
+        self.logon_oauth_button.configure(
+            text="Refresh OAuth Token",
+            fg_color=("#530000"),
+            hover_color=("#005000"),
+            command=self.refresh_oauth_session,
+        )
         self.refresh_oauth_session_command()
         self._kill.set()
 
-
     def run(self):
-        self.logon_oauth_button.configure(text="Refresh OAuth Token", fg_color=("#005000"), hover_color=("#530000"), command=self.refresh_oauth_session)
+        self.logon_oauth_button.configure(
+            text="Refresh OAuth Token",
+            fg_color=("#005000"),
+            hover_color=("#530000"),
+            command=self.refresh_oauth_session,
+        )
         refresh_state = self.refresh_oauth_session_checkbox.get()
         while self.seconds > 60:
             self.countdown(self.seconds)
 
             if refresh_state != self.refresh_oauth_session_checkbox.get():
                 refresh_state = self.refresh_oauth_session_checkbox.get()
-                on_off = "Enabling" if refresh_state else "Disabling" 
+                on_off = "Enabling" if refresh_state else "Disabling"
                 self.print(f"{on_off} auto refresh of OAuth session.\n")
 
             self.seconds -= 1
@@ -60,7 +69,7 @@ class CountdownThread(threading.Thread):
             is_killed = self._kill.wait(self._interval)
             if is_killed:
                 return
-            
+
         if self.refresh_oauth_session_checkbox.get() == 1:
             self.print("Refreshing OAuth Session...")
             self.countdown(0)
@@ -68,11 +77,21 @@ class CountdownThread(threading.Thread):
             return
         else:
             self.print("Your session has expired. Please refresh your OAuth session.\n")
-            self.logon_oauth_button.configure(text="Logon to Dynu API", fg_color=self.old_button_color, hover_color=self.old_button_hover_color, command=self.refresh_oauth_session_command)
+            self.logon_oauth_button.configure(
+                text="Logon to Dynu API",
+                fg_color=self.old_button_color,
+                hover_color=self.old_button_hover_color,
+                command=self.refresh_oauth_session_command,
+            )
             self.reset_oauth_session_command()
             self.countdown(0)
             return
 
     def kill(self):
-        self.logon_oauth_button.configure(text="Logon to Dynu API", fg_color=self.old_button_color, hover_color=self.old_button_hover_color, command=self.refresh_oauth_session_command)
+        self.logon_oauth_button.configure(
+            text="Logon to Dynu API",
+            fg_color=self.old_button_color,
+            hover_color=self.old_button_hover_color,
+            command=self.refresh_oauth_session_command,
+        )
         self._kill.set()
