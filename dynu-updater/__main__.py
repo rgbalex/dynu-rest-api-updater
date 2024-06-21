@@ -161,20 +161,16 @@ class DynuAPIUpdater:
             messagebox.showerror("Error", "Please request OAuth session first")
             return
 
+        retries = 0
         headers = {
             "Authorization": f"Bearer {self.access_token}",
             "Content-Type": "application/json",
         }
-        retries = 0
+        
         while retries < 3:
             response = requests.get("https://api.dynu.com/v2/dns", headers=headers)
             response_json = response.json()
             match response.status_code:
-                case 401:
-                    self.output_text.configure(state="normal")
-                    self.output_text.insert(ctk.END, str(response_json) + "\n")
-                    self.output_text.see(ctk.END)
-                    self.output_text.configure(state="disabled")
                 case 200:
                     self.dns_list = response_json["domains"]
                     domains = [record["name"] for record in self.dns_list]
@@ -190,6 +186,11 @@ class DynuAPIUpdater:
                     self.output_text.see(ctk.END)
                     self.output_text.configure(state="disabled")
                     return
+                case 401:
+                    self.output_text.configure(state="normal")
+                    self.output_text.insert(ctk.END, str(response_json) + "\n")
+                    self.output_text.see(ctk.END)
+                    self.output_text.configure(state="disabled")
                 case _:
                     print(f"Uncaught response status code {response.status_code}")
                     raise Exception(
@@ -224,15 +225,22 @@ class DynuAPIUpdater:
         if self.timer_thread is not None:
             self.timer_thread.kill()
 
-        def fetch_data(self):
-            response = requests.get(self.url, auth=(self.client_id, self.api_key))
+        def fetch_data(self, client_id:str, api_key:str):
+            if client_id.strip() == "" or api_key.strip() == "":
+                messagebox.showerror("Error", "Please provide a valid client_id and api_key")
+                self.request_button.configure(state="normal")
+                return
+                        
+            response = requests.get(self.url, auth=(client_id, api_key))
             response_json = response.json()
+            # Obtain correct status code
+            status_code = None
+            try: 
+                status_code = response_json["statusCode"]
+            except KeyError as e:
+                status_code = response.status_code
 
-            # Check authentication
-            match response.status_code:
-                case 401:
-                    messagebox.showerror("Error", "Invalid client_id or api_key")
-                    return
+            match status_code:
                 case 200:
                     if self.timer_thread is not None:
                         self.timer_thread.kill()
@@ -248,10 +256,12 @@ class DynuAPIUpdater:
 
                     self.output_text.configure(state="normal")
                     self.output_text.insert(
-                        ctk.END, "=== Authorization Successful ===\n"
+                        ctk.END, "OAuth Key Requested Successfully.\n"
                     )
                     self.output_text.see(ctk.END)
                     self.output_text.configure(state="disabled")
+                case 401:
+                    messagebox.showerror("Error", "Invalid client_id or api_key")
                 case _:
                     raise Exception(
                         "Uncaught response status code {}".format(response.status_code)
@@ -272,7 +282,7 @@ class DynuAPIUpdater:
             )
 
         self.request_button.configure(state="disabled")
-        thread = threading.Thread(target=fetch_data, args=(self,))
+        thread = threading.Thread(target=fetch_data, args=(self,client_id, api_key))
         thread.start()
 
 
