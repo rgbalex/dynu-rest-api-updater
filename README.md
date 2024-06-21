@@ -1,4 +1,5 @@
 [![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Python package](https://github.com/rgbalex/dynu-rest-api-updater/actions/workflows/python-package.yml/badge.svg)](https://github.com/rgbalex/dynu-rest-api-updater/actions/workflows/python-package.yml)
 
 # dynu-rest-api-updater
 
