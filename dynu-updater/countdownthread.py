@@ -38,7 +38,7 @@ class CountdownThread(threading.Thread):
     def run(self):
         self.logon_oauth_button.configure(text="Refresh OAuth Token", fg_color=("#005000"), hover_color=("#530000"), command=self.refresh_oauth_session)
         refresh_state = self.refresh_oauth_session_checkbox.get()
-        while self.seconds > 28790:
+        while self.seconds > 60:
             self.countdown(self.seconds)
 
             if refresh_state != self.refresh_oauth_session_checkbox.get():
@@ -53,7 +53,7 @@ class CountdownThread(threading.Thread):
 
         self.print("Your session will expire in 60 seconds.\n")
 
-        while self.seconds > 28785:
+        while self.seconds > 10:
             self.countdown(self.seconds)
 
             self.seconds -= 1

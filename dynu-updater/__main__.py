@@ -14,11 +14,13 @@ class DynuAPIUpdater:
         self.api_key = None
         self.dns_list = {}
         self.client_id = None
+        self.logfile = None
         self.access_token = None
         self.timer_thread = None
         self.auto_update_ip_thread = None
         self.url = "https://api.dynu.com/v2/oauth2/token"
         self.secret_path = os.path.join(os.environ["USERPROFILE"], "dynu_secret.json")
+        self.logfile_path = os.path.join(os.environ["USERPROFILE"], "dynu_updater.log")
 
         if not os.path.exists(self.secret_path):
             with open(self.secret_path, "w") as f:
@@ -30,6 +32,12 @@ class DynuAPIUpdater:
                     },
                     f,
                 )
+
+        if not os.path.exists(self.logfile_path):
+            with open("dynu_updater.log", "w") as f:
+                f.write("")
+        
+        self.logfile = open(self.logfile_path, "a")
 
         try:
             with open(self.secret_path) as f:
@@ -164,6 +172,9 @@ class DynuAPIUpdater:
         exit(0)
 
     def print(self, string: str):
+        # get timestamp
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        self.logfile.write(f"{timestamp} | {string.strip()}\n")
         self.output_text.configure(state="normal")
         self.output_text.insert(ctk.END, string)
         self.output_text.see(ctk.END)
