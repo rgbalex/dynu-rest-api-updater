@@ -1,5 +1,6 @@
-import requests, json
 import json
+import time
+import requests
 import tkinter as tk
 from tkinter import messagebox
 
@@ -27,14 +28,26 @@ def make_request():
         json.dump({"client_id": client_id, "client_secret": api_key}, f)
 
     response = requests.get(url, auth=(client_id, api_key))
+    response_json = response.json()
 
-    output_text.insert(tk.END, str(response.json())+"\n")
+    # Update the timer label with the value of the timer
+    start_countdown(response_json["expires_in"])
+
+    output_text.insert(tk.END, str(response.json()) + "\n")
     output_text.see(tk.END)
+
+
+def start_countdown(seconds):
+    formatted_time = time.strftime("%H:%M:%S", time.gmtime(seconds))
+    timer_time_label.config(text=formatted_time)
+    if seconds > 0:
+        window.after(1000, start_countdown, seconds - 1)
 
 
 # Create the GUI window
 window = tk.Tk()
 window.title("Dynu API Updater")
+window.iconbitmap("favicon.ico")
 
 # Create labels and entry fields for client_id and api_key
 client_id_label = tk.Label(window, text="Client ID:")
@@ -43,11 +56,19 @@ client_id_entry = tk.Entry(window)
 client_id_entry.insert(tk.END, client_id)
 client_id_entry.pack()
 
+
 api_key_label = tk.Label(window, text="API Key:")
 api_key_label.pack()
 api_key_entry = tk.Entry(window)
 api_key_entry.insert(tk.END, api_key)
 api_key_entry.pack()
+
+# A timer to show how long you can make API requests for
+timer_label = tk.Label(window, text="Timer (seconds):")
+timer_label.pack()
+
+timer_time_label = tk.Label(window, text="0")
+timer_time_label.pack()
 
 # Create a button to make the request
 request_button = tk.Button(window, text="Make Request", command=make_request)
