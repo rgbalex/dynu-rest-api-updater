@@ -7,6 +7,11 @@ This is a repository for the dynu-rest-api-updater project.
 
 *Please Note:* I am not affiliated with Dynu in any way this project is made entitely for fun.
 
+> [!CAUTION]
+> This code currently stores your client ID and your API key in **plaintext** at `%USERPROFILE%/dynu_secret.json` 
+> 
+> You will need to exercise caution around this file and make your own judgement on if this is a safe thing to do. I take no responsibility for leaked keys.
+
 I usually was using a Rasberry Pi 2 running DietPI to run simple scripts like this to update my IP address and more but I found during my house move that I was only able to setup my Desktop PC and this meant sometimes servers were running for me but their DDNS was not. 
 
 To combat this, I built this application that could run on my host machine to automatically update the IP of a given DDNS domain or group while running my servers also.
