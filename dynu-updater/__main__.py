@@ -17,13 +17,17 @@ class DynuAPIUpdater:
 
         if not os.path.exists(self.secret_path):
             with open(self.secret_path, "w") as f:
-                json.dump({"client_id": "", "client_secret": ""}, f)
+                json.dump({"client_id": "", "client_secret": "", "auto_update_oauth_session": True}, f)
 
-        with open(self.secret_path) as f:
-            secret_data = json.load(f)
-            self.client_id = secret_data["client_id"]
-            self.api_key = secret_data["client_secret"]
-
+        try:
+            with open(self.secret_path) as f:
+                secret_data = json.load(f)
+                self.client_id = secret_data["client_id"]
+                self.api_key = secret_data["client_secret"]
+                self.auto_update_oauth_session = secret_data["auto_update_oauth_session"]
+        except KeyError as e:
+            print(f"Error: {e}")
+            
         self.create_gui()
 
     def create_gui(self):
@@ -53,19 +57,20 @@ class DynuAPIUpdater:
 
         self.client_id_label = ctk.CTkLabel(self.JSONFrame, text="Client ID:")
         self.client_id_label.grid(row=0, column=0, padx=0)
-        self.client_id_entry = ctk.CTkEntry(self.JSONFrame)
+        self.client_id_entry = ctk.CTkEntry(self.JSONFrame, show="*")
         self.client_id_entry.insert(ctk.END, self.client_id)
         self.client_id_entry.grid(row=1, column=0, padx=10, pady=0)
 
         self.api_key_label = ctk.CTkLabel(self.JSONFrame, text="API Key:")
         self.api_key_label.grid(row=2, column=0, padx=10)
-        self.api_key_entry = ctk.CTkEntry(self.JSONFrame)
+        self.api_key_entry = ctk.CTkEntry(self.JSONFrame, show="*")
         self.api_key_entry.insert(ctk.END, self.api_key)
         self.api_key_entry.grid(row=3, column=0, padx=10, pady=(0, 5))
 
         self.TimerFrame = ctk.CTkFrame(self.OAuthFrame)
         self.TimerFrame.grid_columnconfigure((0, 1), weight=1)
-        self.TimerFrame.grid(row=0, column=1, rowspan=4, padx=10, pady=10)
+        self.TimerFrame.configure(border_width=2)
+        self.TimerFrame.grid(row=0, column=1, rowspan=3, padx=10, pady=10)
 
         self.timer_label = ctk.CTkLabel(self.TimerFrame, text="Timer (seconds):")
         self.timer_label.grid(row=1, column=1, padx=10, pady=0)
@@ -74,6 +79,11 @@ class DynuAPIUpdater:
             self.TimerFrame, text="0", font=("Arial", 16)
         )
         self.timer_time_label.grid(row=2, column=1, padx=10, pady=0)
+
+        self.refresh_oauth_session_checkbox = ctk.CTkCheckBox(
+            self.OAuthFrame, text="Enable Auto Refresh API Key"
+        )
+        self.refresh_oauth_session_checkbox.grid(row=3, column=1, padx=10, pady=(0, 0))
         # endregion
 
         # region APIActionFrame
@@ -102,7 +112,20 @@ class DynuAPIUpdater:
         self.window.destroy()
         exit(0)
 
+    def update_oauth_session_refresh_preference(self):
+        with open(self.secret_path, "r") as f:
+            secret_data = json.load(f)
+            secret_data["auto_update_oauth_session"] = self.refresh_oauth_session_checkbox.get()
+
+        with open(self.secret_path, "w") as f:
+            json.dump(secret_data, f)
+
+        print(f"Updated auto update OAuth session preference to {self.refresh_oauth_session_checkbox.get()}")
+
     def authenticate_oauth_session(self):
+        if self.timer_thread is not None:
+            self.timer_thread.kill()
+            
         def fetch_data(self):
             response = requests.get(self.url, auth=(self.client_id, self.api_key))
             response_json = response.json()
@@ -116,14 +139,16 @@ class DynuAPIUpdater:
                     self.timer_thread.kill()
 
                 self.timer_thread = CountdownThread(
-                    response_json["expires_in"], self.timer_time_label
+                    response_json["expires_in"], self.timer_time_label, 
+                    self.refresh_oauth_session_checkbox,
+                    self.authenticate_oauth_session
                 )
                 self.timer_thread.start()
 
                 self.output_text.insert(ctk.END, str(response_json) + "\n")
                 self.output_text.see(ctk.END)
             else:
-                pass
+                raise Exception("Uncaught response status code {}".format(response.status_code))
 
             self.request_button.configure(state="normal")
 
@@ -134,8 +159,8 @@ class DynuAPIUpdater:
             messagebox.showerror("Error", "Please provide client_id and api_key")
             return
 
-        with open("secret.json", "w") as f:
-            json.dump({"client_id": client_id, "client_secret": api_key}, f)
+        with open(self.secret_path, "w") as f:
+            json.dump({"client_id": client_id.strip(), "client_secret": api_key.strip()}, f)
 
         self.request_button.configure(state="disabled")
         thread = threading.Thread(target=fetch_data, args=(self,))
