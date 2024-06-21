@@ -151,6 +151,12 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
+# Ignore Auto Py to Exe files
+dist/
+build/
+__pycache__/
+output/
+
 
 # Ignore the secret datafile
 secret.json

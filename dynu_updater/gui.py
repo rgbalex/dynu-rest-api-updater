@@ -413,6 +413,8 @@ class DynuAPIUpdater:
         thread = threading.Thread(target=fetch_data, args=(self, client_id, api_key))
         thread.start()
 
+def main():
+    DynuAPIUpdater()
 
-# Create an instance of the DynuAPIUpdater class
-dynu_updater = DynuAPIUpdater()
+if __name__ == "__main__":
+    main()
