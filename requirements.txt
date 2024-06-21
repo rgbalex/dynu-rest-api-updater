@@ -1,0 +1,5 @@
+json
+tkinter
+requests
+threading
+customtkinter
