@@ -55,7 +55,7 @@ class DynuAPIUpdater:
     def create_gui(self):
         self.window = ctk.CTk()
         self.window.title("Unofficial Dynu API Updater")
-        self.window.iconbitmap("favicon.ico")
+        self.window.iconbitmap("./assets/favicon.ico")
         self.window.protocol("WM_DELETE_WINDOW", self.on_window_close)
 
         self.window.minsize(700, 450)
