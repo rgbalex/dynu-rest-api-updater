@@ -43,8 +43,8 @@ jobs:
     - name: Zip Folder
       run: |
         cd ./dist/dynu_updater
-        rm -rf ./dynu_updater_windows.zip
-        zip -r ./dynu_updater_windows.zip ./* -x ".git/*" ".github/*"
+        rm ./dynu_updater_windows.zip
+        powershell Compress-Archive ./* dynu_updater_windows.zip
     - name: Create Release
       uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/tags/')
