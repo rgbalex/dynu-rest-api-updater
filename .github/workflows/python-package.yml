@@ -48,15 +48,16 @@ jobs:
         echo "List of files below:"
         ls -la
         echo "List of files above"
-    - name: Create Release
-      uses: softprops/action-gh-release@v2
-      if: startsWith(github.ref, 'refs/tags/')
-      with:
-        name: Nightly Release
-        fail_on_unmatched_files: true
-        draft: false
-        prerelease: true
-        files: |
-          dynu_updater.zip
+    - name: create release with assests
+      if: ${{env.VERSION}}
+      continue-on-error: false
+      uses: phuonghuynh/action-ghrelease@v1.1.0
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
+        GITHUB_TOKEN: ${{env._GITHUB_PAT}}
+      with:
+        repository: phuonghuynh/testci3
+        commitish: main
+        tag_name: ${{env.RELEASE_TAG}}
+        name: Release ${{env.RELEASE_TAG}}
+        #          body: Auto release API ${{env.RELEASE_TAG}} by @ci
+        files: dynu_updater.zip
