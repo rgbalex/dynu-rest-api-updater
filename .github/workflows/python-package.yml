@@ -43,7 +43,7 @@ jobs:
     - name: Zip Folder
       run: |
         cd ./dist/dynu_updater
-        rm ./dynu_updater_windows.zip
+        if exist ./dynu_updater_windows.zip rm ./dynu_updater_windows.zip
         powershell Compress-Archive ./* dynu_updater_windows.zip
     - name: Create Release
       uses: softprops/action-gh-release@v2
