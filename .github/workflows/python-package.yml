@@ -49,11 +49,11 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/tags/')
       with:
-        name: Nightly Release
+        name: Nightly Release for Python ${{ matrix.python-version }}
         fail_on_unmatched_files: true
         draft: false
         prerelease: true
         files: |
-          ./dist/dynu_updater.zip
+          ./dist/dynu_updater/dynu_updater.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
