@@ -51,4 +51,4 @@ jobs:
     - uses: actions/upload-artifact@v4
       with:
         name: dynu_updater_portable_py_${{ matrix.python-version }}_${{ github.ref }}
-        path: dynu_updater.zip
+        path: ./dist/dynu_updater/dynu_updater.zip
