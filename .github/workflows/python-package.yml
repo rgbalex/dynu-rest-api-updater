@@ -48,15 +48,7 @@ jobs:
         echo "List of files below:"
         ls -la
         echo "List of files above"
-    - name: create release with assests
-      continue-on-error: false
-      uses: phuonghuynh/action-ghrelease@v1.1.0
-      env:
-        GITHUB_TOKEN: ${{env._GITHUB_PAT}}
+    - uses: actions/upload-artifact@v4
       with:
-        repository: phuonghuynh/testci3
-        commitish: main
-        tag_name: ${{env.RELEASE_TAG}}
-        name: Release ${{env.RELEASE_TAG}}
-        #          body: Auto release API ${{env.RELEASE_TAG}} by @ci
-        files: ./dist/dynu_updater.zip
+        name: dynu_updater_portable_py_${{ matrix.python-version }}_${{ github.ref }}
+        path: dynu_updater.zip
