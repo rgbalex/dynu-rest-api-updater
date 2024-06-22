@@ -51,7 +51,6 @@ jobs:
         name: Nightly Release for Python ${{ matrix.python-version }}
         fail_on_unmatched_files: true
         draft: false
-        prerelease: true
         files: |
           ./dist/dynu_updater/dynu_updater_windows.zip
       env:
