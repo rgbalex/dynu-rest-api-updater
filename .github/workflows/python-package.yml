@@ -56,6 +56,7 @@ jobs:
         fail_on_unmatched_files: true
         draft: false
         prerelease: true
-        files: *.zip
+        files: |
+          dynu_updater.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
