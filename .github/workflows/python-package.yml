@@ -48,9 +48,14 @@ jobs:
         echo "List of files below:"
         ls -la
         echo "List of files above"
-    - name: Release
+    - name: Create Release
       uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/tags/')
       with:
+        name: Nightly Release
         fail_on_unmatched_files: true
-        files: dynu_updater.zip
+        draft: false
+        prerelease: true
+        files: *.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
