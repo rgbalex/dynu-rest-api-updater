@@ -22,6 +22,8 @@ To combat this, I built this application that could run on my host machine to au
 
 The dynu-rest-api-updater is a tool that allows you to update your Dynu DNS records using the Dynu REST API. It provides a simple and convenient way to automate the process of keeping your DNS records up to date.
 
+![Screenshot](screenshot.png)
+
 ## Features
 
 - Update Dynu DNS records using the Dynu REST API
